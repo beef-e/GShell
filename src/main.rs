@@ -1,5 +1,7 @@
 use std::process::Command;
 use std::io::{stdin, stdout, Write};
+use std::env;
+use std::path::Path;
 
 fn main() {
     
@@ -9,7 +11,7 @@ fn main() {
     loop{    
         // use the `>` character as the prompt
         // need to explicitly flush this to ensure it prints before read_line
-        // flush prints the output instantly
+        // flush means to print the output instantly
         print!("> ");
         stdout().flush();
 
@@ -32,11 +34,41 @@ fn main() {
         let cmd = parts.next().unwrap();
         let args = parts;
 
-        let mut child = Command::new(cmd)
-            .args(args)
-            .spawn()
-            .unwrap();
+
+        match cmd {
+            "cd"=> {
+                // Default to home if no directory is provided
+                //
+                // args is an iterator (from parts)
+                // peekable() makes it a peekable iterator, so we can peek() the next element
+                // without consuming it
+                //
+                // peekable() returns a Peekable<args> (args is the type of my original
+                // iterator)
+                // peek() returns a Option<&T>, where T is the type of the iterator
+                
+                // map_or is a method of the Option type, evaluating its value and returning the
+                // default value ("/") if given "None" or using it if it exists.
+                //
+                // In this case, it takes the value of X (similar to C pointers) and returns the
+                // actual value
+                let new_dir = args.peekable().peek().map_or("/", |x| *x);
+                let root  = Path::new(new_dir);
+                if let Err(e) = env::set_current_dir(&root) {
+                    eprintln!("{}", e);
+                }
+            },
+
+            "exit" => return,
+
+            command => {
+                let mut child = Command::new(cmd)
+                .args(args)
+                .spawn()
+                .unwrap();
         
-        child.wait();
+                child.wait();
+            }
+        }
     }
 }
